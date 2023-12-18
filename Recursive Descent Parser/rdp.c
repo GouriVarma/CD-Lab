@@ -1,107 +1,114 @@
+/* 
+Grammar used here is:
+E -> E + T | E - T | T
+T -> T * F | T / F | F
+F -> ( E ) | num
+*/
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <ctype.h>
+#include<stdlib.h>
+#include<string.h>
 
-void input();
-void output();
-void change(int p, char *res);
-void constant();
+char input[100];
+int pos = 0;
 
-struct expr
-{
-    char op[2], op1[5], op2[5], res[5];
-    int flag;
-} arr[10];
+int parseExpression();
+int parseTerm();
+int parseFactor();
+int parseNumber();
 
-int n;
+int main() {
+    printf("Enter an arithmetic expression: ");
+    fgets(input, sizeof(input), stdin);
 
-int main()
-{
-    input();
-    constant();
-    output();
+    int result = parseExpression();
+
+    if (pos == strlen(input) - 1) {
+        printf("Parsing successful. Result: %d\n", result);
+    } else {
+        printf("Parsing error at position %d.\n", pos);
+    }
+
     return 0;
 }
 
-void input()
-{
-    int i;
-    printf("\n\nEnter the maximum number of expressions: ");
-    scanf("%d", &n);
-    printf("\nEnter the input:\n");
-    printf("Enter in the format \"Operator operand1 operand2 result\n e.g. if your expression is x  = y + z \nEnter \"+ y z x\"\n");
-    for (i = 0; i < n; i++)
-    {
-        scanf("%s", arr[i].op);
-        scanf("%s", arr[i].op1);
-        scanf("%s", arr[i].op2);
-        scanf("%s", arr[i].res);
-        arr[i].flag = 0;
+int parseExpression() {
+    int left = parseTerm();
+
+    while (input[pos] == '+' || input[pos] == '-') {
+        char op = input[pos];
+        pos++;
+        if (input[pos] == '*' || input[pos] == '/' || input[pos] == '+' || input[pos] == '-') {
+            printf("Error: Invalid operations.\n");
+            exit(1);
+        }
+        int right = parseTerm();
+        if (op == '+') {
+            left += right;
+        } else {
+            left -= right;
+        }
     }
+
+    return left;
 }
 
-void constant()
-{
-    int i;
-    int op1, op2, res;
-    char op, res1[5];
-    for (i = 0; i < n; i++)
-    {
-        if (isdigit(arr[i].op1[0]) && isdigit(arr[i].op2[0]) || strcmp(arr[i].op, "=") == 0)
-        {
-            op1 = atoi(arr[i].op1);
-            op2 = atoi(arr[i].op2);
-            op = arr[i].op[0];
-            switch (op)
-            {
-                case '+':
-                    res = op1 + op2;
-                    break;
-                case '-':
-                    res = op1 - op2;
-                    break;
-                case '*':
-                    res = op1 * op2;
-                    break;
-                case '/':
-                    res = op1 / op2;
-                    break;
-                case '=':
-                    res = op1;
-                    break;
+
+int parseTerm() {
+    int left = parseFactor();
+
+    while (input[pos] == '*' || input[pos] == '/') {
+        char op = input[pos];
+        pos++;
+        if (input[pos] == '*' || input[pos] == '/' || input[pos] == '+' || input[pos] == '-') {
+            printf("Error: Invalid operations.\n");
+            exit(1);
+        }
+        int right = parseFactor();
+        if (op == '*') {
+            left *= right;
+        } else {
+            if (right != 0) {
+                left /= right;
+            } else {
+                printf("Error: Division by zero.\n");
+                exit(1);
             }
-            sprintf(res1, "%d", res);
-            arr[i].flag = 1;
-            change(i, res1);
         }
+    }
+
+    return left;
+}
+
+
+int parseFactor() {
+    while (isspace(input[pos])) {
+        pos++;
+    }
+
+    if (input[pos] == '(') {
+        pos++;
+        int result = parseExpression();
+        if (input[pos] == ')') {
+            pos++;
+            return result;
+        } else {
+            printf("Error: Missing closing parenthesis.\n");
+            exit(1);
+        }
+    } else {
+        return parseNumber();
     }
 }
 
-void output()
-{
-    int i = 0;
-    printf("\nOptimized code is:\n");
-    for (i = 0; i < n; i++)
-    {
-        if (!arr[i].flag)
-        {
-            printf("%s %s %s %s\n", arr[i].op, arr[i].op1, arr[i].op2, arr[i].res);
-        }
-    }
-}
+int parseNumber() {
+    int number = 0;
 
-void change(int p, char *res)
-{
-    int i;
-    for (i = p + 1; i < n; i++)
-    {
-        if (strcmp(arr[p].res, arr[i].op1) == 0)
-        {
-            strcpy(arr[i].op1, res);
-        }
-        else if (strcmp(arr[p].res, arr[i].op2) == 0)
-        {
-            strcpy(arr[i].op2, res);
-        }    }
+    while (isdigit(input[pos])) {
+        number = number * 10 + (input[pos] - '0');
+        pos++;
+    }
+
+    return number;
 }
